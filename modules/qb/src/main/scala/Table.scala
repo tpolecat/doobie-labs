@@ -5,6 +5,8 @@ import doobie.labs.qb.proof._
 import scala.language.dynamics
 import shapeless._
 
+// It seems at first that a table could be a degenerate kind of statement but really it can't be.
+// Aliasing complicates it.
 final class Table[A <: XString, E <: HList] private (name: String, alias: A)(
   implicit b: Bindings[E] // unused, just to ease the implementatio
 ) {
