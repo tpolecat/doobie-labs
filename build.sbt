@@ -4,6 +4,7 @@ import microsites._
 // Library versions all in one place, for convenience and sanity.
 lazy val catsVersion          = "1.0.1"
 lazy val catsEffectVersion    = "0.8"
+lazy val doobieVersion        = "0.5.0"
 lazy val kindProjectorVersion = "0.9.6"
 lazy val shapelessVersion     = "2.3.3"
 lazy val paigesVersion        = "0.2.0"
@@ -180,10 +181,7 @@ lazy val qb = project
     name := "doobie-labs-qb",
     description := "experimental query builder for doobie",
     libraryDependencies ++= Seq(
-      "com.chuusai"   %% "shapeless"    % shapelessVersion,
-      "org.typelevel" %% "cats-core"    % catsVersion,
-      "org.typelevel" %% "cats-free"    % catsVersion,
-      "org.typelevel" %% "cats-effect"  % catsEffectVersion,
+      "org.tpolecat"  %% "doobie-core"  % doobieVersion,
       "org.typelevel" %% "cats-testkit" % catsVersion % "test",
       "org.typelevel" %% "paiges-core"  % paigesVersion,
     ),

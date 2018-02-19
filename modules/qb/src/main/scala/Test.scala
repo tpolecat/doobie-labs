@@ -16,6 +16,6 @@ object Test {
   val x =
     city.as.c1
       .leftJoin(city.as.c2).on { ε => ε.c1.name === ε.c2.name }
-      // .where { e => e.c1.id =/= e.c2.id }
-
+      .where { ε => ε.c1.id =/= ε.c2.id }
+      .select { ε => ε.c1.id :: ε.c2.name :: HNil }
 }

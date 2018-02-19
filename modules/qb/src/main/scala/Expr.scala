@@ -1,7 +1,10 @@
 package doobie.labs.qb
 
+import doobie.Fragment
+import doobie.syntax.string._
+
 trait Expr[A] { self =>
-  def sql: String // needs to be a fragment
+  def sql: Fragment
 
   private def untypedComparison(e: Expr[_], op: String): Expr[Boolean] =
     Expr.untypedComparison(this, e, op)
@@ -29,12 +32,12 @@ object Expr {
 
   def untypedComparison(a: Expr[_], b: Expr[_], op: String): Expr[Boolean] =
     new Expr[Boolean] {
-      val sql = s"(${a.sql} $op ${b.sql})"
+      val sql = fr0"(" ++ a.sql ++ Fragment.const(op) ++ b.sql ++ fr")"
     }
 
   def not(e: Expr[Boolean]): Expr[Boolean] =
     new Expr[Boolean] {
-      def sql = s"(NOT ${e.sql})"
+      def sql = fr"(NOT" ++ e.sql ++ fr")"
     }
 
 }

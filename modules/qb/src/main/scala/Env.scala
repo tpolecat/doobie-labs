@@ -1,6 +1,7 @@
 package doobie.labs.qb
 
 import doobie.labs.qb.proof._
+import doobie.Fragment
 import shapeless._
 import scala.language.dynamics
 
@@ -27,7 +28,7 @@ class Env[E <: HList](alias: String)(
     implicit ev: HasField[E, s.type]
   ): Expr[ev.Out] =
     new Expr[ev.Out] {
-      def sql: String = s"$alias.$s"
+      def sql = Fragment.const(s"$alias.$s")
     }
 }
 

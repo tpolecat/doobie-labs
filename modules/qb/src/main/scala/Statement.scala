@@ -1,23 +1,24 @@
 package doobie.labs.qb
 
+import doobie._, doobie.implicits._
 import doobie.labs.qb.proof._
-import scala.annotation.implicitNotFound
-import shapeless._
+import doobie.labs.qb.Operation._
+import doobie.util.fragment.Fragment
+import shapeless.{ HList, ::, HNil }
 
-final class Statement[S <: Operation, E <: HList] private (val sql: String)(
+final class Statement[S <: Operation, E <: HList] private (val sql: Fragment)(
   implicit b: AliasedBindings[E] // unused
 ) {
-  import Operation._
   void(b)
 
-  type Can[O <: Operation] = Statement.HasOperation[S, O]
+  type Can[O <: Operation] = HasOperation[S, O]
 
   def crossJoin[A <: XString, Eʹ <: HList](t: Table[A, Eʹ])(
     implicit ab: AliasedBindings[(A, Eʹ) :: E],
              st: Can[Join]
   ): Statement[S, (A, Eʹ) :: E] = {
     void(st)
-    new Statement(s"${sql} CROSS JOIN ${t.sql}")
+    new Statement(sql ++ fr"CROSS JOIN ${t.sql}")
   }
 
   def innerJoin[A <: XString, Eʹ <: HList](t: Table[A, Eʹ])(
@@ -25,7 +26,7 @@ final class Statement[S <: Operation, E <: HList] private (val sql: String)(
              st: Can[Join]
   ): Joiner[S, (A, Eʹ) :: E] = {
     void(st)
-    new Joiner(cond => new Statement(s"${sql} INNER JOIN ${t.sql} ON $cond"))
+    new Joiner(cond => new Statement(sql ++ fr"INNER JOIN " ++ Fragment.const(t.sql) ++ fr"ON" ++ cond))
   }
 
   // Statement conditions need a lowered environment with no options at all because they don't have
@@ -38,10 +39,10 @@ final class Statement[S <: Operation, E <: HList] private (val sql: String)(
 
   ): Joiner[S, (A, Eʹʹ) :: E] = {
     void(be, st)
-    new Joiner(cond => new Statement(s"${sql} LEFT JOIN ${t.sql} ON $cond"))
+    new Joiner(cond => new Statement(sql ++ fr"LEFT JOIN" ++ Fragment.const(t.sql) ++ fr"ON" ++ cond))
   }
 
-  class Joiner[S0 <: Operation, E0 <: HList](mkJoin: String => Statement[S0, E0])(
+  class Joiner[S0 <: Operation, E0 <: HList](mkJoin: Fragment => Statement[S0, E0])(
     implicit ev: AliasedBindings[E0]
   ) {
     def on(f: AliasedEnv[E0] => Expr[Boolean]): Statement[S0, E0] =
@@ -53,7 +54,16 @@ final class Statement[S <: Operation, E <: HList] private (val sql: String)(
   ): Statement[Select, E] = {
     void(ca)
     val cond = f(new AliasedEnv[E]).sql
-    new Statement(s"$sql WHERE $cond")
+    new Statement(sql ++ fr"WHERE" ++ cond)
+  }
+
+  // We're not ready to go all the way to query0, but ok for now
+  def select[B <: HList, O <: HList](f: AliasedEnv[E] => B)(
+    implicit ev: Selection.Aux[B, O],
+             co: Composite[O]
+  ): Query0[O] = {
+    val sel = f(new AliasedEnv[E])
+    (fr"SELECT" ++ ev.sql(sel) ++ sql).query[O]
   }
 
   override def toString =
@@ -61,23 +71,10 @@ final class Statement[S <: Operation, E <: HList] private (val sql: String)(
 
 }
 object Statement {
-  import Operation._
-
-  /** An alias for <:< that gives a slightly more useful error message. */
-  @implicitNotFound("Operation ${O} isn't permitted here. Allowed: ${S}")
-  final class HasOperation[S <: Operation, O <: Operation] private ()
-  object HasOperation {
-    implicit def can[S <: Operation, O <: Operation](
-      implicit ev: S <:< O
-    ): HasOperation[S, O] = {
-      void(ev)
-      new HasOperation[S, O]()
-    }
-  }
 
   def fromTable[A <: XString, E <: HList](t: Table[A, E])(
     implicit ab: AliasedBindings[(A, E) :: HNil]
   ): Statement[Join with Where with Select, (A, E) :: HNil] =
-    new Statement(s"FROM ${t.sql}")
+    new Statement(fr"FROM" ++ Fragment.const(t.sql))
 
 }
