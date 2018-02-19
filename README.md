@@ -3,7 +3,9 @@
 [![Maven Central](https://img.shields.io/maven-central/v/org.tpolecat/doobie-labs-core_2.12.svg)](https://maven-badges.herokuapp.com/maven-central/org.tpolecat/doobie-labs-core_2.12)
 [![Javadocs](https://javadoc.io/badge/org.tpolecat/doobie-labs-core_2.12.svg)](https://javadoc.io/doc/org.tpolecat/doobie-labs-core_2.12)
 
-**doobie-labs** - Experimental Add-Ons for Doobie
+## doobie-labs
+
+Experimental add-ons for doobie.
 
 Nothing to see yet.
 
