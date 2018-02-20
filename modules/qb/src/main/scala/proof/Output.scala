@@ -3,8 +3,10 @@ package proof
 
 import doobie._, doobie.implicits._
 import shapeless.{ HList, ::, HNil }
+import scala.annotation._
 
 // a hlist of expr[a] where we have composite for the inner types.
+@inductive
 trait Output[E <: HList] {
   type Out <: HList
   def sql(e: E): Fragment
@@ -29,6 +31,16 @@ object Output {
         e match {
           case h :: HNil => h.sql
           case h :: t    => h.sql ++ fr"," ++ ev.sql(t)
+        }
+    }
+
+  implicit def single[H](
+  ): Output.Aux[Expr[H] :: HNil, H :: HNil] =
+    new Output[Expr[H] :: HNil] {
+      type Out = H :: HNil
+      def sql(e: Expr[H] :: HNil) =
+        e match {
+          case h :: HNil => h.sql
         }
     }
 

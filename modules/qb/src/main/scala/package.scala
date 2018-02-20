@@ -8,7 +8,7 @@ package object qb {
 
   type XString = String with Singleton
 
-  implicit def tableToStatement[A <: XString, E <: HList](t: Table[A, E])(
+  def from[A <: XString, E <: HList](t: Table[A, E])(
     implicit ab: AliasedBindings[(A, E) :: HNil]
   ): Statement[Join with Where with Select, (A, E) :: HNil] =
     Statement.fromTable(t)

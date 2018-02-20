@@ -1,7 +1,7 @@
 package doobie.labs.qb
 package proof
 
-import scala.annotation.implicitNotFound
+import scala.annotation._
 import shapeless._
 
 // witness that E is like ("id", Int) :: ... :: HNil
@@ -23,8 +23,8 @@ object Bindings {
 
   // TODO: disallow duplicate keys!
   implicit def hcons[K <: XString, V, T <: HList](
-    implicit bt: Bindings[T],
-             op: V <:< Option[A] forSome { type A }
+    implicit op: V <:< Option[A] forSome { type A },
+             bt: Bindings[T],
   ): Bindings.Aux[(K, V) :: T, (K, V) :: bt.Out] =
     new Bindings[(K, V) :: T] {
       void(op)
@@ -32,8 +32,8 @@ object Bindings {
     }
 
   implicit def hcons2[K <: XString, V, T <: HList](
-    implicit bt: Bindings[T],
-             op: V <:!< Option[A] forSome { type A }
+    implicit op: V <:!< Option[A] forSome { type A },
+             bt: Bindings[T],
   ): Bindings.Aux[(K, V) :: T, (K, Option[V]) :: bt.Out] =
     new Bindings[(K, V) :: T] {
       void(op)

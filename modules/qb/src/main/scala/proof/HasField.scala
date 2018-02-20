@@ -1,7 +1,7 @@
 package doobie.labs.qb
 package proof
 
-import scala.annotation.implicitNotFound
+import scala.annotation._
 import shapeless._
 
 @implicitNotFound("Key ${K} not found in environmnent ${L}")

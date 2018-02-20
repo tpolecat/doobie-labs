@@ -1,5 +1,6 @@
 package doobie.labs.qb
 
+import doobie.labs.qb.proof._
 // import doobie._, doobbie.imports._
 import shapeless._
 
@@ -14,25 +15,46 @@ object Test {
     ("population",  Int)    :: HNil
   ]
 
-  // SELECT k.name, MAX(c.population) AS maxpop
+  val country = Table["country",
+    ("code",           String)             ::
+    ("name",           String)             ::
+    ("continent",      String)             ::
+    ("region",         String)             ::
+    ("surfacearea",    Float)              ::
+    ("indepyear",      Option[Short])      ::
+    ("population",     Int)                ::
+    ("lifeexpectancy", Option[Float])      ::
+    ("gnp",            Option[BigDecimal]) ::
+    ("gnpold",         Option[BigDecimal]) ::
+    ("localname",      String)             ::
+    ("governmentform", String)             ::
+    ("headofstate",    Option[String])     ::
+    ("capital",        Option[Int])        ::
+    ("code2",          String)             :: HNil
+  ]
+
+  // really we want `HasBinding[E, "c", "population"]
+  def maxPop[E <: HList, B <: HList](e: AliasedEnv[E])(
+    implicit eh: HasField.Aux[E, "c", B],
+             xx: Bindings[B],
+             bh: HasField[B, "population"]
+  ): Expr[bh.Out] =
+    Expr.max(e.c.population)
+
+  import Expr.max
+
+  // SELECT k.name, MAX(c.population)
   // FROM country AS k
   // LEFT JOIN city AS c ON k.code = c.countrycode
   // GROUP BY k.name
-  // HAVING max(c.population) < 10000
-  // ORDER BY maxpop ASC
-
-  def query(s: String) =
-    city.as.c1
-      .leftJoin(city.as.c2)
-      .on     { ε => ε.c1.name === ε.c2.name }
-      .where  { ε => (ε.c1.id =/= ε.c2.id) and (ε.c1.name =/= Expr(s)) }
-      .select { ε => ε.c1.id :: ε.c2.name :: Expr(42) :: HNil }
-      .distinct
-      .groupBy { ε => ε.c1.countrycode :: HNil }
-        // can only use fields that don't appear in select, or appear only in aggregate functions
-        // we need a new environment here for HAVING
-      .having  { ε => ε.c2.id > Expr(10) }       // we can only refer to fields in GROUP BY or used in aggregate
-
-  val x = query("Atlanta") // Query0[Int :: Option[String] :: Int :: HNil]
+  // HAVING MAX(c.population) < 10000
+  // ORDER BY MAX(c.population) ASC
+  val z =
+    from(country.as.k)
+      .leftJoin(city.as.c).on(e => e.k.code === e.c.countrycode)
+      .select (e => e.k.name :: max(e.c.population) :: HNil)
+      .groupBy(e => e.k.name :: HNil)
+      .having (e => max(e.c.population) < Expr(10000))
+      .orderBy(e => max(e.c.population) :: HNil)
 
 }

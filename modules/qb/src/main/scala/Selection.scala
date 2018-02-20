@@ -22,7 +22,7 @@ final class Selection[S <: Selection.Operation, E <: HList, A <: HList] private 
 
   def distinct(
     implicit ev: Can[Distinct]
-  ): Selection[GroupBy, E, A] = {
+  ): Selection[GroupBy with OrderBy, E, A] = {
     void(ev)
     new Selection(from, fr"SELECT DISTINCT")
   }
@@ -30,7 +30,7 @@ final class Selection[S <: Selection.Operation, E <: HList, A <: HList] private 
   def distinctBy[B <: HList, O <: HList](f: AliasedEnv[E] => B)(
     implicit ev: Output.Aux[B, O],
              co: Composite[O]
-  ): Selection[GroupBy, E, O] = {
+  ): Selection[GroupBy with OrderBy, E, O] = {
     val cols = f(new AliasedEnv[E])
     val sel  = fr0"SELECT DISTINCT BY(" ++ ev.sql(cols) ++ fr")"
     new Selection(from, sel)
@@ -39,7 +39,7 @@ final class Selection[S <: Selection.Operation, E <: HList, A <: HList] private 
   def groupBy[B <: HList, O <: HList](f: AliasedEnv[E] => B)(
     implicit ev: Output.Aux[B, O],
              co: Composite[O]
-  ): Selection[Having, E, O] = {
+  ): Selection[Having with OrderBy, E, O] = {
     val cols = f(new AliasedEnv[E])
     val froʹ = from ++ fr"GROUP BY" ++ ev.sql(cols)
     new Selection(froʹ, select)
@@ -47,10 +47,19 @@ final class Selection[S <: Selection.Operation, E <: HList, A <: HList] private 
 
   def having(f: AliasedEnv[E] => Expr[Boolean])(
     implicit ev: Can[Having]
-  ): Selection[Nothing, E, A] = {
+  ): Selection[OrderBy, E, A] = {
     void(ev)
     val cond = f(new AliasedEnv[E]).sql
     new Selection(from ++ fr"HAVING" ++ cond, select)
+  }
+
+  def orderBy[B <: HList, O <: HList](f: AliasedEnv[E] => B)(
+    implicit ev: Output.Aux[B, O],
+             co: Composite[O]
+  ): Selection[Nothing, E, O] = {
+    val cols = f(new AliasedEnv[E])
+    val froʹ = from ++ fr"ORDER BY" ++ ev.sql(cols)
+    new Selection(froʹ, select)
   }
 
   def done: Query0[A] =
@@ -68,13 +77,14 @@ object Selection {
     type Distinct <: Operation
     type GroupBy  <: Operation
     type Having   <: Operation
+    type OrderBy  <: Operation
   }
   import Operation._
 
   def fromFragment[E <: HList, A <: HList](select: Fragment)(
     implicit ae: AliasedBindings[E],
              ca: Composite[A]
-  ): Selection[Distinct with GroupBy, E, A] =
+  ): Selection[Distinct with GroupBy with OrderBy, E, A] =
     new Selection(select, fr"SELECT")
 
 }

@@ -44,4 +44,9 @@ object Expr {
       def sql = fr"(NOT" ++ e.sql ++ fr")"
     }
 
+  def max[A](e: Expr[A]): Expr[A] =
+    new Expr[A] {
+      def sql = fr0"MAX(" ++ e.sql ++ fr")"
+    }
+
 }

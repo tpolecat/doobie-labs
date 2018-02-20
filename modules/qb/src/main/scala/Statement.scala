@@ -55,10 +55,25 @@ final class Statement[S <: Statement.Operation, E <: HList] private (val sql: Fr
 
   // TODO: allow column aliasing, and add aliases to E
 
+  // We need to accumulate columns that are mentioned in aggregate functions
+
+  // https://www.postgresql.org/docs/9.6/static/sql-select.html#SQL-GROUPBY
+  //
+  // When GROUP BY is present, or any aggregate functions are present, it is not valid for the
+  // SELECT list expressions to refer to ungrouped columns except within aggregate functions or
+  // when the ungrouped column is functionally dependent on the grouped columns, since there would
+  // otherwise be more than one possible value to return for an ungrouped column. A functional
+  // dependency exists if the grouped columns (or a subset thereof) are the primary key of the
+  // table containing the ungrouped column.
+
+  // we need to accumulate grouped (aggregate) and ungrouped columns in SELECT
+  // if there are any grouped columns, all ungrouped columns must be mentioned in GROUP BY
+  // and only these GROUP BY columns (or aggregates) can appear in the HAVING clause
+
   def select[B <: HList, O <: HList](f: AliasedEnv[E] => B)(
     implicit ev: Output.Aux[B, O],
              co: Composite[O]
-  ): Selection[Distinct with GroupBy, E, O] = {
+  ): Selection[Distinct with GroupBy with OrderBy, E, O] = {
     val sel = f(new AliasedEnv[E])
     val fra = ev.sql(sel) ++ sql
     Selection.fromFragment(fra)

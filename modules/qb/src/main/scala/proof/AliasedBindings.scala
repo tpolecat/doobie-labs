@@ -1,12 +1,13 @@
 package doobie.labs.qb
 package proof
 
-import scala.annotation.implicitNotFound
+import scala.annotation._
 import shapeless._
 
 // witness that E is like ("table", ("id", Int) :: ... :: HNil) :: ... :: HNil
 // where the keys are unique
 @implicitNotFound("Invalid NamedBindings. Expected (\"tableAlias\", (\"colname\", Type) :: ... :: HNil) :: ... :: HNil; found ${E}")
+@inductive
 sealed trait AliasedBindings[E <: HList]
 object AliasedBindings {
 
@@ -19,8 +20,10 @@ object AliasedBindings {
   implicit def hcons[A <: XString, H <: HList, T <: HList](
     implicit bh: Bindings[H],
              at: AliasedBindings[T]
-  ): AliasedBindings[(A, H) :: T] =
-    (new AliasedBindings[(A, H) :: T] {}, bh, at)._1
+  ): AliasedBindings[(A, H) :: T] = {
+    void(bh, at)
+    new AliasedBindings[(A, H) :: T] {}
+  }
 
 }
 
