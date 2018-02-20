@@ -14,6 +14,13 @@ object Test {
     ("population",  Int)    :: HNil
   ]
 
+  // SELECT k.name, MAX(c.population) AS maxpop
+  // FROM country AS k
+  // LEFT JOIN city AS c ON k.code = c.countrycode
+  // GROUP BY k.name
+  // HAVING max(c.population) < 10000
+  // ORDER BY maxpop ASC
+
   def query(s: String) =
     city.as.c1
       .leftJoin(city.as.c2)
