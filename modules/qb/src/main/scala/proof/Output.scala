@@ -5,25 +5,25 @@ import doobie._, doobie.implicits._
 import shapeless.{ HList, ::, HNil }
 
 // a hlist of expr[a] where we have composite for the inner types.
-trait Selection[E <: HList] {
+trait Output[E <: HList] {
   type Out <: HList
   def sql(e: E): Fragment
 }
-object Selection {
-  def apply[E <: HList](implicit ev: Selection[E]): ev.type = ev
+object Output {
+  def apply[E <: HList](implicit ev: Output[E]): ev.type = ev
 
-  type Aux[E <: HList, O <: HList] = Selection[E] { type Out = O }
+  type Aux[E <: HList, O <: HList] = Output[E] { type Out = O }
 
-  implicit val hnil: Selection.Aux[HNil, HNil] =
-    new Selection[HNil] {
+  implicit val hnil: Output.Aux[HNil, HNil] =
+    new Output[HNil] {
       type Out = HNil
       def sql(e: HNil) = Fragment.empty
     }
 
   implicit def hcons[H, T <: HList](
-    implicit ev: Selection[T]
-  ): Selection.Aux[Expr[H] :: T, H :: ev.Out] =
-    new Selection[Expr[H] :: T] {
+    implicit ev: Output[T]
+  ): Output.Aux[Expr[H] :: T, H :: ev.Out] =
+    new Output[Expr[H] :: T] {
       type Out = H :: ev.Out
       def sql(e: Expr[H] :: T) =
         e match {

@@ -1,7 +1,6 @@
 package doobie.labs.qb
 
-import doobie.Fragment
-import doobie.syntax.string._
+import doobie._, doobie.implicits._
 
 trait Expr[A] { self =>
   def sql: Fragment
@@ -29,6 +28,11 @@ trait Expr[A] { self =>
 }
 
 object Expr {
+
+  def apply[A: Meta](a: A): Expr[A] =
+    new Expr[A] {
+      val sql = fr"$a"
+    }
 
   def untypedComparison(a: Expr[_], b: Expr[_], op: String): Expr[Boolean] =
     new Expr[Boolean] {

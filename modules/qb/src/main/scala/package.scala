@@ -4,7 +4,7 @@ import doobie.labs.qb.proof._
 import shapeless._
 
 package object qb {
-  import Operation.{ Join, Where, Select }
+  import Statement.Operation.{ Join, Where, Select }
 
   type XString = String with Singleton
 
