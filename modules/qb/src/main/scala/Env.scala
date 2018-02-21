@@ -28,7 +28,7 @@ class Env[E <: HList](alias: String)(
     implicit ev: HasField[E, s.type]
   ): Expr[ev.Out] =
     new Expr[ev.Out] {
-      def sql = Fragment.const(s"$alias.$s")
+      def sql = Fragment.const0(s"$alias.$s")
     }
 }
 

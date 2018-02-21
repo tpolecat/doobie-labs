@@ -2,7 +2,10 @@ package doobie.labs.qb
 
 import doobie._, doobie.implicits._
 
+// This needs to be built out to be more typeful.
 trait Expr[A] { self =>
+
+  // should not have a trailing space
   def sql: Fragment
 
   private def untypedComparison(e: Expr[_], op: String): Expr[Boolean] =
@@ -31,12 +34,12 @@ object Expr {
 
   def apply[A: Meta](a: A): Expr[A] =
     new Expr[A] {
-      val sql = fr"$a"
+      val sql = fr0"$a"
     }
 
   def untypedComparison(a: Expr[_], b: Expr[_], op: String): Expr[Boolean] =
     new Expr[Boolean] {
-      val sql = fr0"(" ++ a.sql ++ Fragment.const(op) ++ b.sql ++ fr")"
+      val sql = fr0"(" ++ a.sql ++ Fragment.const(" " + op) ++ b.sql ++ fr")"
     }
 
   def not(e: Expr[Boolean]): Expr[Boolean] =
@@ -46,7 +49,7 @@ object Expr {
 
   def max[A](e: Expr[A]): Expr[A] =
     new Expr[A] {
-      def sql = fr0"MAX(" ++ e.sql ++ fr")"
+      def sql = fr0"MAX(" ++ e.sql ++ fr0")"
     }
 
 }

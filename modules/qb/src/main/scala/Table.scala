@@ -1,25 +1,29 @@
 package doobie.labs.qb
 
 import cats.implicits._
+import doobie.Fragment
 import doobie.labs.qb.proof._
 import scala.language.dynamics
 import shapeless._
 
-// It seems at first that a table could be a degenerate kind of statement but really it can't be.
-// Aliasing complicates it.
+/**
+ * A table has a name and an alias. The alias is also known at the type level as `A`. The mapping
+ * from column name to Scala type is known '''only''' at the type level as `E`, with `Bindings[E]`
+ * witnessing that `E` has the proper structure. We over-constrain `E` to catch errors earlier,
+ * when they will make more sense to the user.
+ */
 final class Table[A <: XString, E <: HList] private (name: String, alias: A)(
-  implicit b: Bindings[E] // unused, just to ease the implementatio
+  implicit b: Bindings[E]
 ) {
 
-  def sql: String =
-    if (name === alias) name else s"$name AS $alias"
+  /** A `Table`'s SQL fragment is the table name, or name `AS` alias. */
+  def sql: Fragment =
+    Fragment.const(if (name === alias) name else s"$name AS $alias")
 
-  def withAlias(alias: String): Table[alias.type, E] =
-    new Table(name, alias)
-
+  /** We don't want the user dealing with strings, so we alias via `Dynamic` as `table.as.alias`. */
   object as extends Dynamic {
     def selectDynamic(alias: String): Table[alias.type, E] =
-      withAlias(alias)
+      new Table(name, alias)
   }
 
   override def toString =
@@ -29,6 +33,7 @@ final class Table[A <: XString, E <: HList] private (name: String, alias: A)(
 
 object Table {
 
+  /** Construct a `Table` given compatible types `A` and `E`. */
   def apply[A <: XString, E <: HList](
     implicit be: Bindings[E],
              na: Witness.Aux[A]

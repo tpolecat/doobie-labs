@@ -5,46 +5,65 @@ import doobie.labs.qb.proof._
 import doobie.util.fragment.Fragment
 import shapeless.{ HList, ::, HNil }
 
+/**
+ * A statement is a set of joined tables with no output columns specified (once we do this we have
+ * a `Selection`). The statement is parameterized by its accumulated binding environment `E`
+ * witnessed by `AliasedBindings` and indexed by an intersection `S` of allowed operations
+ * forming a state machine that allows many JOINs, followed by an optional WHERE, followed by a
+ * SELECT.
+ */
 final class Statement[S <: Statement.Operation, E <: HList] private (val sql: Fragment)(
-  implicit b: AliasedBindings[E] // unused
+  implicit b: AliasedBindings[E]
 ) {
-  void(b)
 
   import Statement._
   import Statement.Operation._
   import Selection.Operation._
 
+  /** A partially applied `HasOperation` ... `Can[Foo]` means `S` must confom with `Foo`. */
   type Can[O <: Operation] = HasOperation[S, O]
 
-  def crossJoin[A <: XString, Eʹ <: HList](t: Table[A, Eʹ])(
+  /**
+   * Append a cross join. The final binding environment `E` includes the joined table and the
+   * state `S` is unchanged.
+   */
+  def crossJoin[A <: XString, Eʹ <: HList](table: Table[A, Eʹ])(
     implicit ab: AliasedBindings[(A, Eʹ) :: E],
              st: Can[Join]
   ): Statement[S, (A, Eʹ) :: E] = {
     void(st)
-    new Statement(sql ++ frNL ++ fr"CROSS JOIN ${t.sql}")
+    new Statement(sql ++ frNL ++ fr"CROSS JOIN" ++ table.sql)
   }
 
-  def innerJoin[A <: XString, Eʹ <: HList](t: Table[A, Eʹ])(
+  /**
+   * Append an inner join. The final binding environment `E` includes the joined table and the state
+   * `S` is unchanged.
+   */
+  def innerJoin[A <: XString, Eʹ <: HList](table: Table[A, Eʹ])(
     implicit ab: AliasedBindings[(A, Eʹ) :: E],
              st: Can[Join]
   ): Joiner[S, (A, Eʹ) :: E] = {
     void(st)
-    new Joiner(cond => new Statement(sql ++ frNL ++ fr"INNER JOIN " ++ Fragment.const(t.sql) ++ fr"ON" ++ cond))
+    new Joiner(cond => new Statement(sql ++ frNL ++ fr"INNER JOIN " ++ table.sql ++ fr"ON" ++ cond))
   }
 
-  // Statement conditions need a lowered environment with no options at all because they don't have
-  // any meaning in SQL. I wonder if they should be SQL types (!)
-  // It doesn't really matter since Expr ends up being mostly untyped.
-
-  def leftJoin[A <: XString, Eʹ <: HList, Eʹʹ <: HList](t: Table[A, Eʹ])(
+  /**
+   * Append a left outer join. The final binding environment `E` includes the joined table with all
+   * columns lifted to `Option`, and the state `S` is unchanged.
+   */
+  def leftJoin[A <: XString, Eʹ <: HList, Eʹʹ <: HList](table: Table[A, Eʹ])(
     implicit be: Bindings.Aux[Eʹ, Eʹʹ],
              ab: AliasedBindings[(A, Eʹʹ) :: E],
              st: Can[Join]
   ): Joiner[S, (A, Eʹʹ) :: E] = {
     void(be, st)
-    new Joiner(cond => new Statement(sql ++ frNL ++ fr"LEFT JOIN" ++ Fragment.const(t.sql) ++ fr"ON" ++ cond))
+    new Joiner(cond => new Statement(sql ++ frNL ++ fr"LEFT JOIN" ++ table.sql ++ fr"ON" ++ cond))
   }
 
+  /**
+   * Appends a `WHERE` clause. The binding environment `E` is unchanged and the final state `S` is
+   * set to `Select`.
+   */
   def where(f: AliasedEnv[E] => Expr[Boolean])(
     implicit ca: Can[Where]
   ): Statement[Select, E] = {
@@ -70,6 +89,10 @@ final class Statement[S <: Statement.Operation, E <: HList] private (val sql: Fr
   // if there are any grouped columns, all ungrouped columns must be mentioned in GROUP BY
   // and only these GROUP BY columns (or aggregates) can appear in the HAVING clause
 
+  /**
+   * Append a selection of columns, specified as some `B <: HList` witnessed by `Output`, returning
+   * a new `Selection` allowing for `DISTINCT`, `GROUP BY`, and `ORDER BY`.
+   */
   def select[B <: HList, O <: HList](f: AliasedEnv[E] => B)(
     implicit ev: Output.Aux[B, O],
              co: Composite[O]
@@ -98,7 +121,7 @@ object Statement {
   def fromTable[A <: XString, E <: HList](t: Table[A, E])(
     implicit ab: AliasedBindings[(A, E) :: HNil]
   ): Statement[Join with Where with Select, (A, E) :: HNil] =
-    new Statement(frNL ++ fr"FROM" ++ Fragment.const(t.sql))
+    new Statement(frNL ++ fr"FROM" ++ t.sql)
 
   class Joiner[S0 <: Operation, E0 <: HList](mkJoin: Fragment => Statement[S0, E0])(
     implicit ev: AliasedBindings[E0]

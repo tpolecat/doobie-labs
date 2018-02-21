@@ -62,12 +62,12 @@ object Test {
     (q.check *> IO(println) *> q.quick).unsafeRunSync
   }
 
-  // SELECT k.name , MAX(c.population )
+  // SELECT k.name, MAX(c.population)
   // FROM country AS k
-  // LEFT JOIN city AS c ON (k.code = c.countrycode )
+  // LEFT JOIN city AS c ON (k.code = c.countrycode)
   // GROUP BY k.name
-  // HAVING (MAX(c.population ) < ? )
-  // ORDER BY MAX(c.population )
+  // HAVING (MAX(c.population) < ?)
+  // ORDER BY MAX(c.population)
   //
   // ✓ SQL Compiles and Typechecks
   // ✓ P01 Int  →  INTEGER (int4)
