@@ -1,6 +1,7 @@
 package doobie.labs
 
 import doobie.labs.qb.proof._
+import doobie.Fragment
 import shapeless._
 
 package object qb {
@@ -14,5 +15,7 @@ package object qb {
     Statement.fromTable(t)
 
   def void(as: Any*): Unit = (as, ())._2
+
+  val frNL = Fragment.const0("\n")
 
 }

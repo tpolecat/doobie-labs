@@ -21,7 +21,7 @@ final class Statement[S <: Statement.Operation, E <: HList] private (val sql: Fr
              st: Can[Join]
   ): Statement[S, (A, Eʹ) :: E] = {
     void(st)
-    new Statement(sql ++ fr"CROSS JOIN ${t.sql}")
+    new Statement(sql ++ frNL ++ fr"CROSS JOIN ${t.sql}")
   }
 
   def innerJoin[A <: XString, Eʹ <: HList](t: Table[A, Eʹ])(
@@ -29,7 +29,7 @@ final class Statement[S <: Statement.Operation, E <: HList] private (val sql: Fr
              st: Can[Join]
   ): Joiner[S, (A, Eʹ) :: E] = {
     void(st)
-    new Joiner(cond => new Statement(sql ++ fr"INNER JOIN " ++ Fragment.const(t.sql) ++ fr"ON" ++ cond))
+    new Joiner(cond => new Statement(sql ++ frNL ++ fr"INNER JOIN " ++ Fragment.const(t.sql) ++ fr"ON" ++ cond))
   }
 
   // Statement conditions need a lowered environment with no options at all because they don't have
@@ -42,7 +42,7 @@ final class Statement[S <: Statement.Operation, E <: HList] private (val sql: Fr
              st: Can[Join]
   ): Joiner[S, (A, Eʹʹ) :: E] = {
     void(be, st)
-    new Joiner(cond => new Statement(sql ++ fr"LEFT JOIN" ++ Fragment.const(t.sql) ++ fr"ON" ++ cond))
+    new Joiner(cond => new Statement(sql ++ frNL ++ fr"LEFT JOIN" ++ Fragment.const(t.sql) ++ fr"ON" ++ cond))
   }
 
   def where(f: AliasedEnv[E] => Expr[Boolean])(
@@ -50,7 +50,7 @@ final class Statement[S <: Statement.Operation, E <: HList] private (val sql: Fr
   ): Statement[Select, E] = {
     void(ca)
     val cond = f(new AliasedEnv[E]).sql
-    new Statement(sql ++ fr"WHERE" ++ cond)
+    new Statement(sql ++ frNL ++ fr"WHERE" ++ cond)
   }
 
   // TODO: allow column aliasing, and add aliases to E
@@ -98,7 +98,7 @@ object Statement {
   def fromTable[A <: XString, E <: HList](t: Table[A, E])(
     implicit ab: AliasedBindings[(A, E) :: HNil]
   ): Statement[Join with Where with Select, (A, E) :: HNil] =
-    new Statement(fr"FROM" ++ Fragment.const(t.sql))
+    new Statement(frNL ++ fr"FROM" ++ Fragment.const(t.sql))
 
   class Joiner[S0 <: Operation, E0 <: HList](mkJoin: Fragment => Statement[S0, E0])(
     implicit ev: AliasedBindings[E0]

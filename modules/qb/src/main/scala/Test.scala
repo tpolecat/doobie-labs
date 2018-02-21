@@ -1,10 +1,20 @@
 package doobie.labs.qb
 
-import doobie.labs.qb.proof._
-// import doobie._, doobbie.imports._
+import cats.implicits._
+import cats.effect.IO
+import doobie._
 import shapeless._
+import Expr.max
 
 object Test {
+
+  // yadda
+  val xa = Transactor.fromDriverManager[IO](
+    "org.postgresql.Driver",
+    "jdbc:postgresql:world",
+    "postgres", ""
+  )
+  val y = xa.yolo; import y._
 
   // Table is defined entirely in the type.
   val city = Table["city",
@@ -33,28 +43,44 @@ object Test {
     ("code2",          String)             :: HNil
   ]
 
-  // really we want `HasBinding[E, "c", "population"]
-  def maxPop[E <: HList, B <: HList](e: AliasedEnv[E])(
-    implicit eh: HasField.Aux[E, "c", B],
-             xx: Bindings[B],
-             bh: HasField[B, "population"]
-  ): Expr[bh.Out] =
-    Expr.max(e.c.population)
-
-  import Expr.max
-
-  // SELECT k.name, MAX(c.population)
-  // FROM country AS k
-  // LEFT JOIN city AS c ON k.code = c.countrycode
-  // GROUP BY k.name
-  // HAVING MAX(c.population) < 10000
-  // ORDER BY MAX(c.population) ASC
-  val z =
+  // Aliases are introduced via Dynamic. Env lookups are also via Dynamic and are checked at compile
+  // time (misspell a table/column name and it doesn't compile). Columns types are tracked through
+  // to the end. Outer joins lift one side or the other into Option. Expr(a) introduces a parameter
+  // and captures the argument. End result is a Query0.
+  def query(maxPop: Int) =
     from(country.as.k)
       .leftJoin(city.as.c).on(e => e.k.code === e.c.countrycode)
       .select (e => e.k.name :: max(e.c.population) :: HNil)
       .groupBy(e => e.k.name :: HNil)
-      .having (e => max(e.c.population) < Expr(10000))
+      .having (e => max(e.c.population) < Expr(maxPop))
       .orderBy(e => max(e.c.population) :: HNil)
+      .done
+      .map(_.tupled) // Query0[(String, Option[Int])]
+
+  def main(args: Array[String]): Unit = {
+    val q = query(1000)
+    (q.check *> IO(println) *> q.quick).unsafeRunSync
+  }
+
+  // SELECT k.name , MAX(c.population )
+  // FROM country AS k
+  // LEFT JOIN city AS c ON (k.code = c.countrycode )
+  // GROUP BY k.name
+  // HAVING (MAX(c.population ) < ? )
+  // ORDER BY MAX(c.population )
+  //
+  // ✓ SQL Compiles and Typechecks
+  // ✓ P01 Int  →  INTEGER (int4)
+  // ✓ C01 name VARCHAR (varchar) NOT NULL  →  String
+  // ✓ C02 max  INTEGER (int4)    NULL?     →  Option[Int]
+  //
+  // (Pitcairn,Some(42))
+  // (Tokelau,Some(300))
+  // (Holy See (Vatican City State),Some(455))
+  // (Cocos (Keeling) Islands,Some(503))
+  // (Niue,Some(682))
+  // (Christmas Island,Some(700))
+  // (Norfolk Island,Some(800))
+  // (Anguilla,Some(961))
 
 }

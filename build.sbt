@@ -181,12 +181,24 @@ lazy val qb = project
     name := "doobie-labs-qb",
     description := "experimental query builder for doobie",
     libraryDependencies ++= Seq(
-      "org.tpolecat"  %% "doobie-core"  % doobieVersion,
-      "org.typelevel" %% "cats-testkit" % catsVersion % "test",
-      "org.typelevel" %% "paiges-core"  % paigesVersion,
+      "org.tpolecat"  %% "doobie-core"     % doobieVersion,
+      "org.tpolecat"  %% "doobie-postgres" % doobieVersion,
+      "org.typelevel" %% "cats-testkit"    % catsVersion % "test"
     ),
     initialCommands := """
+      |import cats._, cats.implicits._
+      |import cats.effect._, cats.effect.implicits._
+      |import doobie._, doobie.implicits._
+      |import doobie.postgres._, doobie.postgres.implicits._
       |import doobie.labs.qb._
+      |import shapeless._
+      |val xa = Transactor.fromDriverManager[IO](
+      |  "org.postgresql.Driver",
+      |  "jdbc:postgresql:world",
+      |  "postgres", ""
+      |)
+      |val y = xa.yolo
+      |import y._
     """.stripMargin
   )
 

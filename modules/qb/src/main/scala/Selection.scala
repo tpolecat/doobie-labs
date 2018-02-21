@@ -29,19 +29,22 @@ final class Selection[S <: Selection.Operation, E <: HList, A <: HList] private 
 
   def distinctBy[B <: HList, O <: HList](f: AliasedEnv[E] => B)(
     implicit ev: Output.Aux[B, O],
-             co: Composite[O]
+             co: Composite[O],
+             xx: Can[Distinct]
   ): Selection[GroupBy with OrderBy, E, O] = {
+    void(xx)
     val cols = f(new AliasedEnv[E])
     val sel  = fr0"SELECT DISTINCT BY(" ++ ev.sql(cols) ++ fr")"
     new Selection(from, sel)
   }
 
-  def groupBy[B <: HList, O <: HList](f: AliasedEnv[E] => B)(
-    implicit ev: Output.Aux[B, O],
-             co: Composite[O]
-  ): Selection[Having with OrderBy, E, O] = {
+  def groupBy[B <: HList](f: AliasedEnv[E] => B)(
+    implicit ev: Output[B],
+             xx: Can[GroupBy]
+  ): Selection[Having with OrderBy, E, A] = {
+    void(xx)
     val cols = f(new AliasedEnv[E])
-    val froʹ = from ++ fr"GROUP BY" ++ ev.sql(cols)
+    val froʹ = from ++ frNL ++ fr"GROUP BY" ++ ev.sql(cols)
     new Selection(froʹ, select)
   }
 
@@ -50,15 +53,16 @@ final class Selection[S <: Selection.Operation, E <: HList, A <: HList] private 
   ): Selection[OrderBy, E, A] = {
     void(ev)
     val cond = f(new AliasedEnv[E]).sql
-    new Selection(from ++ fr"HAVING" ++ cond, select)
+    new Selection(from ++ frNL ++ fr"HAVING" ++ cond, select)
   }
 
-  def orderBy[B <: HList, O <: HList](f: AliasedEnv[E] => B)(
-    implicit ev: Output.Aux[B, O],
-             co: Composite[O]
-  ): Selection[Nothing, E, O] = {
+  def orderBy[B <: HList](f: AliasedEnv[E] => B)(
+    implicit ev: Output[B],
+             xx: Can[OrderBy]
+  ): Selection[Nothing, E, A] = {
+    void(xx)
     val cols = f(new AliasedEnv[E])
-    val froʹ = from ++ fr"ORDER BY" ++ ev.sql(cols)
+    val froʹ = from ++ frNL ++ fr"ORDER BY" ++ ev.sql(cols)
     new Selection(froʹ, select)
   }
 
