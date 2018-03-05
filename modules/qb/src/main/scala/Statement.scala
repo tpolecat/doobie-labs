@@ -126,6 +126,10 @@ object Statement {
   class Joiner[S0 <: Operation, E0 <: HList](mkJoin: Fragment => Statement[S0, E0])(
     implicit ev: AliasedBindings[E0]
   ) {
+
+    // need AliasedEnv[E0] => B with evidence
+    // UnitaryExp[Boolean] { type N <: HNil // non-null proofs ; def sql: Fragment }
+
     def on(f: AliasedEnv[E0] => Expr[Boolean]): Statement[S0, E0] =
       mkJoin(f(new AliasedEnv[E0]).sql)
   }

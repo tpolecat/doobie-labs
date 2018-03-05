@@ -49,15 +49,16 @@ object Test {
   // and captures the argument. End result is a Query0.
   def query(maxPop: Int) =
     from(country.as.k)
-      .leftJoin(city.as.c).on(e => e.k.code === e.c.countrycode)
-      .select (e => e.k.name :: max(e.c.population) :: HNil)
-      .groupBy(e => e.k.name :: HNil)
-      .having (e => max(e.c.population) < Expr(maxPop))
-      .orderBy(e => max(e.c.population) :: HNil)
+      .leftJoin(city.as.c).on(ε => ε.k.code === ε.c.countrycode)
+      .select (ε => ε.k.name :: max(ε.c.population) :: HNil)
+      .groupBy(ε => ε.k.name :: HNil)
+      .having (ε => max(ε.c.population) < Expr(maxPop))
+      .orderBy(ε => max(ε.c.population) :: HNil)
       .done
       .map(_.tupled) // Query0[(String, Option[Int])]
 
-  def main(args: Array[String]): Unit = {
+  def xmain(args: Array[String]): Unit = {
+    void(args)
     val q = query(1000)
     (q.check *> IO(println) *> q.quick).unsafeRunSync
   }
