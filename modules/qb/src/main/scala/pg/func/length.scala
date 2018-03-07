@@ -5,13 +5,15 @@ package func
 import scala.annotation.implicitNotFound
 import shapeless.HList
 
-// we can encode overloaded methods as top-level objects that we can import one by one and generate
-// from system tables.
+// We can encode overloaded methods as top-level objects that we can import one by one and generate
+// from system tables. The function-specific Arg type allows us to have a nice, very specific
+// implicit not found message.
 object length {
+
   @implicitNotFound("length: expected \"bit\", \"bpchar\", \"bytea\", \"lseg\", \"path\", \"text\", or \"tsvector\";\n        found ${A}")
   class Args[A <: XString] {
     type Out <: XString
-    def sql(a: PgExpr[_, _, _, _, A]): String = a.sql // by default
+    def sql(a: PgExpr[_ <: HList, _ <: HList, _ <: HList, _ <: HList, A]): String = a.sql // by default
   }
   object Args extends ArgsLow {
     type Aux[A <: XString, O] = Args[A] { type Out = O }
@@ -30,9 +32,11 @@ object length {
     ): Args.Aux[A, ar.Out] =
       new Args[A] {
         type Out = ar.Out
-        override def sql(a: PgExpr[_, _, _, _, A]) = a.as.selectDynamic(ca.target)(ca).sql
+        override def sql(a: PgExpr[_ <: HList, _ <: HList, _ <: HList, _ <: HList, A]) =
+          ca(a).sql
       }
   }
+
   def apply[
     P <: HList,
     U <: HList,

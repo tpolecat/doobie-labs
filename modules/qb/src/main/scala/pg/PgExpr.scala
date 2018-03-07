@@ -25,18 +25,6 @@ trait PgExpr[
   def psql: String = s"($sql)"
 
   /**
-   * Dynamic method for applying a cast, written `foo.as.int8`, available when any legal cast is
-   * in scope.
-   */
-  object as extends Dynamic {
-    def selectDynamic[B <: XString](u: B)(
-      implicit ev: ExplicitCast[A, B]
-    ): PgExpr[P, U, G, N, B] = {
-      void(u); ev(PgExpr.this)
-    }
-  }
-
-  /**
    * Apply a binary operator with the given argument. Binary operators never affect any of the
    * accumulated context, so we simply concatenate the left and right side contexts.
    */
@@ -64,9 +52,7 @@ trait PgExpr[
 
 }
 
-/**
- * A PgExpr that references a column given as a table+column alias and a Schema type.
- */
+/** A PgExpr that references a column given as a table+column alias and a Schema type. */
 sealed trait ColRef[T <: XString, C <: XString, A <: XString]
   extends PgExpr[HNil, (T, C) :: HNil, HNil, HNil, A] {
 
@@ -88,6 +74,11 @@ object ColRef {
 }
 
 object PgExpr {
+
+  def apply[A, S <: XString](a: A)(
+    implicit ev: Literal[A]
+  ): PgExpr[HNil, HNil, HNil, HNil, ev.Out] =
+    ev(a)
 
   /** Construct a parameter of the given type. `param["int4"]` yields SQL like `?::int4". */
   def param[U <: XString: ValueOf]: PgExpr[U :: HNil, HNil, HNil, HNil, U] =
@@ -113,17 +104,25 @@ object PgExpr {
   ): PgExpr[P, U, G, N, B] =
     ev(e)
 
-}
+  /** Extension methods. */
+  implicit class PgExprOps[
+    P <: HList,
+    U <: HList,
+    G <: HList,
+    N <: HList,
+    A <: XString,
+  ](val self: PgExpr[P, U, G, N, A]) {
 
+    /**
+     * For ColRef this operation accumulates a new non-null proof, but the general operation
+     * on PgExpr does not. This is the "fallback" case which needs to be added with syntax.
+     */
+    def isNotNull: PgExpr[P, U, G, N, "bool"] =
+      new PgExpr[P, U, G, N, "bool"] {
+        val sql = s"${self.psql} IS NOT NULL"
+      }
 
-object Test {
-
-  // import func._
-
-  def main(args: Array[String]): Unit = {
-    // length(?.bpchar) >= ?.int2
-    val z = ColRef["city", "name", "text"].isNotNull
-    println(z)
   }
 
 }
+
