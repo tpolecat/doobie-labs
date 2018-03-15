@@ -1,6 +1,7 @@
 package doobie.labs.qb
 package pg
 
+import doobie.labs.qb.pg.cast.ImplicitCast
 import scala.language.dynamics
 import shapeless._
 import shapeless.ops.hlist.Prepend

@@ -1,6 +1,7 @@
 package doobie.labs.qb
 package pg
 
+import doobie.labs.qb.pg.cast.ExplicitCast
 import shapeless._
 
 /** Machinery to support Postgres ascriptions like <expr>::type. */
@@ -182,6 +183,6 @@ object unknown          extends Ascription["unknown"]
 object uuid             extends Ascription["uuid"]
 object varbit           extends Ascription["varbit"]
 object varchar          extends Ascription["varchar"]
-object void             extends Ascription["void"]
+// object void             extends Ascription["void"]
 object xid              extends Ascription["xid"]
 object xml              extends Ascription["xml"]

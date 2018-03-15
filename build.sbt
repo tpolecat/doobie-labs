@@ -8,6 +8,7 @@ lazy val doobieVersion        = "0.5.0"
 lazy val kindProjectorVersion = "0.9.6"
 lazy val shapelessVersion     = "2.3.3"
 lazy val paigesVersion        = "0.2.0"
+lazy val betterFilesVersion   = "3.4.0"
 
 // Our set of warts
 lazy val warts =
@@ -150,8 +151,8 @@ lazy val noPublishSettings = Seq(
 lazy val labs = project.in(file("."))
   .settings(commonSettings)
   .settings(noPublishSettings)
-  .dependsOn(qb, docs)
-  .aggregate(qb, docs)
+  .dependsOn(qb, pg, docs)
+  .aggregate(qb, pg, docs)
   .settings(
     name := "doobie-labs",
     releaseCrossBuild := true,
@@ -183,6 +184,37 @@ lazy val qb = project
     libraryDependencies ++= Seq(
       "org.tpolecat"  %% "doobie-core"     % doobieVersion,
       "org.tpolecat"  %% "doobie-postgres" % doobieVersion,
+      "com.github.pathikrit" %% "better-files" % betterFilesVersion,
+      "org.typelevel" %% "cats-testkit"    % catsVersion % "test"
+    ),
+    initialCommands := """
+      |import cats._, cats.implicits._
+      |import cats.effect._, cats.effect.implicits._
+      |import doobie._, doobie.implicits._
+      |import doobie.postgres._, doobie.postgres.implicits._
+      |import doobie.labs.qb._
+      |import shapeless._
+      |val xa = Transactor.fromDriverManager[IO](
+      |  "org.postgresql.Driver",
+      |  "jdbc:postgresql:world",
+      |  "postgres", ""
+      |)
+      |val y = xa.yolo
+      |import y._
+    """.stripMargin
+  )
+
+lazy val pg = project
+  .in(file("modules/pg"))
+  .settings(commonSettings)
+  .settings(publishSettings)
+  .settings(
+    name := "doobie-labs-pg",
+    description := "experimental query builder for doobie",
+    libraryDependencies ++= Seq(
+      "org.tpolecat"  %% "doobie-core"     % doobieVersion,
+      "org.tpolecat"  %% "doobie-postgres" % doobieVersion,
+      "com.github.pathikrit" %% "better-files" % betterFilesVersion,
       "org.typelevel" %% "cats-testkit"    % catsVersion % "test"
     ),
     initialCommands := """
