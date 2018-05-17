@@ -39,15 +39,44 @@ final case class Func(
       s.argTypes.mkString("(", ", ", s"): ${s.retType}")
     } .mkString("\\n  ", "\\n  ", "")
 
-  override def toString =
+  override def toString = {
+    val tc = if (isAggregate) "ArgListAgg" else "ArgList"
+
+    val apply =
+      if (isAggregate)
+        s"""|  def applyProduct[L <: HList, P <: HList, G <: HList, N <: HList, A <: HList](args: L)(
+            |    implicit ev: ArgListAgg.Aux[L, P, G, N, A],
+            |            as: Args[A],
+            |            tt: ToTraversable.Aux[L, List, PgExpr[_, _, _, _, _]]
+            |  ): PgExpr[P, HNil, G, N, as.Out] =
+            |    new PgExpr[P, HNil, G, N, as.Out] {
+            |      void(ev)
+            |      def sql = args.toList.map(_.sql).mkString("max(", ", ", ")")
+            |      override def psql = sql
+            |    }
+            |""".stripMargin
+      else
+        s"""|  def applyProduct[L <: HList, P <: HList, U <: HList, G <: HList, N <: HList, A <: HList](args: L)(
+            |    implicit ev: ${tc}.Aux[L, P, U, G, N, A],
+            |             as: Args[A],
+            |             tt: ToTraversable.Aux[L, List, PgExpr[_, _, _, _, _]]
+            |  ): PgExpr[P, U, G, N, as.Out] =
+            |    new PgExpr[P, U, G, N, as.Out] {
+            |      void(ev)
+            |      def sql = args.toList.map(_.sql).mkString("$name(", ", ", ")")
+            |      override def psql = sql
+            |    }
+            |""".stripMargin
+
     s"""|package doobie.labs.qb.pg
         |package func
         |
-        |import doobie.labs.qb.pg.proof.ConcatNonAggregate
+        |import doobie.labs.qb.pg.proof.${tc}
         |import scala.annotation.implicitNotFound
         |import shapeless.{ HList, HNil, ::, ProductArgs }
         |import shapeless.ops.hlist.ToTraversable
         |
+        |/** @group ${if (isAggregate) "Aggregate" else "Simple"} Functions */
         |object $name extends ProductArgs {
         |
         |  @implicitNotFound("$name: invalid arguments. Valid signatures are $sigHelp")
@@ -58,19 +87,10 @@ final case class Func(
         |    ${arg_instances}
         |  }
         |
-        |  def applyProduct[L <: HList, P <: HList, U <: HList, G <: HList, N <: HList, A <: HList](args: L)(
-        |    implicit ev: ConcatNonAggregate.Aux[L, P, U, G, N, A],
-        |            as: Args[A],
-        |            tt: ToTraversable.Aux[L, List, PgExpr[_, _, _, _, _]]
-        |  ): PgExpr[P, U, G, N, as.Out] =
-        |    new PgExpr[P, U, G, N, as.Out] {
-        |      void(ev)
-        |      def sql = args.toList.map(_.sql).mkString("$name(", ", ", ")")
-        |      override def psql = sql
-        |    }
-        |
+        |$apply
         |}
         |""".stripMargin
+  }
 
 }
 
@@ -134,7 +154,9 @@ object GenFunctions {
     } yield fs.map(_.filterNot(forbidden).simpleModes)
               .filterNot(_.isEmpty)
               .sortBy(_.name)
-              .filter(f => f.name === "length" || f.name === "age")
+              .filter(f => f.name === "length" ||
+                           f.name === "age"    ||
+                           f.name === "max")
 
   def save(f: Func): IO[Unit] =
     IO {

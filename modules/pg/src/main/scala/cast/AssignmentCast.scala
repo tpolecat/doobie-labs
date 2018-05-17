@@ -4,13 +4,17 @@ package cast
 trait AssignmentCast[S <: String with Singleton, T <: String with Singleton]
   extends ExplicitCast[S, T]
 
-object AssignmentCast {
+object AssignmentCast extends AssignmentCastInstances {
 
   def apply[S <: String with Singleton, T <: String with Singleton](s: S, t: T): AssignmentCast[S, T] =
     new AssignmentCast[S, T] {
       val source = s
       val target = t
     }
+
+}
+
+trait AssignmentCastInstances extends ImplicitCastInstances {
 
   implicit val abstime_date          = AssignmentCast("abstime"      , "date"     )
   implicit val abstime_time          = AssignmentCast("abstime"      , "time"     )

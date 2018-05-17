@@ -18,13 +18,20 @@ trait ImplicitCast[S <: String with Singleton, T <: String with Singleton]
 
   }
 
-object ImplicitCast {
+object ImplicitCast extends ImplicitCastInstances {
 
   def apply[S <: String with Singleton, T <: String with Singleton](s: S, t: T): ImplicitCast[S, T] =
     new ImplicitCast[S, T] {
       val source = s
       val target = t
     }
+
+}
+
+trait ImplicitCastInstances {
+
+  implicit def id[A <: String with Singleton: ValueOf]: ImplicitCast[A, A] =
+    ImplicitCast(valueOf[A], valueOf[A])
 
   implicit val abstime_timestamp     = ImplicitCast("abstime"      , "timestamp"    )
   implicit val abstime_timestamptz   = ImplicitCast("abstime"      , "timestamptz"  )

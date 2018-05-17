@@ -1,11 +1,12 @@
 package doobie.labs.qb.pg
 package func
 
-import doobie.labs.qb.pg.proof.ConcatNonAggregate
+import doobie.labs.qb.pg.proof.ArgList
 import scala.annotation.implicitNotFound
 import shapeless.{ HList, HNil, ::, ProductArgs }
 import shapeless.ops.hlist.ToTraversable
 
+/** @group Simple Functions */
 object length extends ProductArgs {
 
   @implicitNotFound("length: invalid arguments. Valid signatures are \n  (text): int4\n  (bpchar): int4\n  (lseg): float8\n  (path): float8\n  (bytea, name): int4\n  (bit): int4\n  (bytea): int4\n  (tsvector): int4")
@@ -24,9 +25,9 @@ object length extends ProductArgs {
   }
 
   def applyProduct[L <: HList, P <: HList, U <: HList, G <: HList, N <: HList, A <: HList](args: L)(
-    implicit ev: ConcatNonAggregate.Aux[L, P, U, G, N, A],
-            as: Args[A],
-            tt: ToTraversable.Aux[L, List, PgExpr[_, _, _, _, _]]
+    implicit ev: ArgList.Aux[L, P, U, G, N, A],
+             as: Args[A],
+             tt: ToTraversable.Aux[L, List, PgExpr[_, _, _, _, _]]
   ): PgExpr[P, U, G, N, as.Out] =
     new PgExpr[P, U, G, N, as.Out] {
       void(ev)

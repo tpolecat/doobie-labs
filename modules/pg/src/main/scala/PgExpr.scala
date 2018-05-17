@@ -30,12 +30,12 @@ trait PgExpr[
    * accumulated context, so we simply concatenate the left and right side contexts.
    */
   def applyDynamic[
-    O <: XString,
+    O  <: XString,
     Pʹ <: HList,
     Uʹ <: HList,
     Gʹ <: HList,
     Nʹ <: HList,
-    B <: XString,
+    B  <: XString,
   ](opname: O)(rhs: PgExpr[Pʹ, Uʹ, Gʹ, Nʹ, B])(
     implicit op: Operator[O, A, B],
              pp: Prepend[P, Pʹ],
@@ -47,6 +47,25 @@ trait PgExpr[
       void(opname)
       def sql = s"${outer.sql} ${op.name} ${rhs.sql}"
     }
+
+  /**
+   * Specialized trap for `applyDynamic` calls to `+` which will otherwise be clobbered by
+   * any2stringAdd.
+   */
+  def +[
+    Pʹ <: HList,
+    Uʹ <: HList,
+    Gʹ <: HList,
+    Nʹ <: HList,
+    B  <: XString,
+  ](rhs: PgExpr[Pʹ, Uʹ, Gʹ, Nʹ, B])(
+    implicit op: Operator["+", A, B],
+             pp: Prepend[P, Pʹ],
+             pu: Prepend[U, Uʹ],
+             pg: Prepend[G, Gʹ],
+             pn: Prepend[N, Nʹ]
+  ): PgExpr[pp.Out, pu.Out, pg.Out, pn.Out, op.Out] =
+    applyDynamic("+")(rhs)
 
   override final def toString =
     s"PgExpr($sql)"

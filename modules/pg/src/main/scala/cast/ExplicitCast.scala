@@ -20,13 +20,17 @@ trait ExplicitCast[S <: String with Singleton, T <: String with Singleton] {
     }
 }
 
-object ExplicitCast {
+object ExplicitCast extends ExplicitCastInstances {
 
   def apply[S <: String with Singleton, T <: String with Singleton](s: S, t: T): ExplicitCast[S, T] =
     new ExplicitCast[S, T] {
       val source = s
       val target = t
     }
+
+}
+
+trait ExplicitCastInstances extends AssignmentCastInstances {
 
   implicit val abstime_int4          = ExplicitCast("abstime"  , "int4"    )
   implicit val bit_int4              = ExplicitCast("bit"      , "int4"    )
