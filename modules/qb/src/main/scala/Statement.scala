@@ -95,7 +95,7 @@ final class Statement[S <: Statement.Operation, E <: HList] private (val sql: Fr
    */
   def select[B <: HList, O <: HList](f: AliasedEnv[E] => B)(
     implicit ev: Output.Aux[B, O],
-             co: Composite[O]
+             co: Read[O]
   ): Selection[Distinct with GroupBy with OrderBy, E, O] = {
     val sel = f(new AliasedEnv[E])
     val fra = ev.sql(sel) ++ sql

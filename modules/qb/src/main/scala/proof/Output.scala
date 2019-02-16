@@ -3,10 +3,8 @@ package proof
 
 import doobie._, doobie.implicits._
 import shapeless.{ HList, ::, HNil }
-import scala.annotation._
 
 // a hlist of expr[a] where we have composite for the inner types.
-@inductive
 trait Output[E <: HList] {
   type Out <: HList
   def sql(e: E): Fragment

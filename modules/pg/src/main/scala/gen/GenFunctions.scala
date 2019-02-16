@@ -95,7 +95,7 @@ final case class Func(
 }
 
 
-object GenFunctions {
+object GenFunctions extends IOApp {
 
   val xa = Transactor.fromDriverManager[IO](
     "org.postgresql.Driver",
@@ -165,13 +165,10 @@ object GenFunctions {
       void(file.overwrite(f.toString)(charset = "UTF-8"))
     }
 
-  def ioMain: IO[Unit] =
+  def run(args: List[String]): IO[ExitCode] =
     for {
       fs <- loadFuncs.transact(xa)
       _  <- fs.traverse(save)
-    } yield ()
-
-  def main(args: Array[String]): Unit =
-    ioMain.unsafeRunSync
+    } yield ExitCode.Success
 
 }

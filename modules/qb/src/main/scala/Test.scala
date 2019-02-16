@@ -1,12 +1,12 @@
 package doobie.labs.qb
 
 import cats.implicits._
-import cats.effect.IO
+import cats.effect._
 import doobie._
 import shapeless._
 import Expr.max
 
-object Test {
+object Test extends IOApp {
 
   // yadda
   val xa = Transactor.fromDriverManager[IO](
@@ -57,10 +57,10 @@ object Test {
       .done
       .map(_.tupled) // Query0[(String, Option[Int])]
 
-  def xmain(args: Array[String]): Unit = {
+  def run(args: List[String]): IO[ExitCode] = {
     void(args)
     val q = query(1000)
-    (q.check *> IO(println) *> q.quick).unsafeRunSync
+    (q.check *> IO(println) *> q.quick).as(ExitCode.Success)
   }
 
   // SELECT k.name, MAX(c.population)

@@ -7,7 +7,6 @@ import shapeless._
 // witness that E is like ("table", ("id", Int) :: ... :: HNil) :: ... :: HNil
 // where the keys are unique
 @implicitNotFound("Invalid NamedBindings. Expected (\"tableAlias\", (\"colname\", Type) :: ... :: HNil) :: ... :: HNil; found ${E}")
-@inductive
 sealed trait AliasedBindings[E <: HList]
 object AliasedBindings {
 

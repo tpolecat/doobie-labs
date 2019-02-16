@@ -10,7 +10,8 @@ final class Selection[S <: Selection.Operation, E <: HList, A <: HList] private 
   val select: Fragment
 )(
   implicit ae: AliasedBindings[E],
-           ca: Composite[A]
+           ra: Read[A],
+          //  wa: Write[A]
 ) {
 
   import Selection.Operation
@@ -29,7 +30,7 @@ final class Selection[S <: Selection.Operation, E <: HList, A <: HList] private 
 
   def distinctBy[B <: HList, O <: HList](f: AliasedEnv[E] => B)(
     implicit ev: Output.Aux[B, O],
-             co: Composite[O],
+             co: Read[O],
              xx: Can[Distinct]
   ): Selection[GroupBy with OrderBy, E, O] = {
     void(xx)
@@ -87,7 +88,7 @@ object Selection {
 
   def fromFragment[E <: HList, A <: HList](select: Fragment)(
     implicit ae: AliasedBindings[E],
-             ca: Composite[A]
+             ra: Read[A]
   ): Selection[Distinct with GroupBy with OrderBy, E, A] =
     new Selection(select, fr"SELECT")
 
